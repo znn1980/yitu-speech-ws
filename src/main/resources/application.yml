@@ -1,0 +1,45 @@
+config: #自定义平台配置
+  audio:
+    speech:
+      ip: stream-asr-prod.yitutech.com
+      port: 50051
+      devId: 21501
+      devKey: NGE3ZTQ3MDBjNmU5NDhhZTgyMDJmMjNjOTI4NzhlY2U=
+      sampleRate: 16000
+
+server:
+  port: 8088
+  servlet:
+    context-path:
+  tomcat:
+    uri-encoding: UTF-8
+  ssl:
+    enabled: false #是否启用https
+    key-store: classpath:keystore.jks #证书文件
+    key-store-password: sanctum@000888 #证书密码
+
+spring:
+  mvc:
+    static-path-pattern: /**
+  resources:
+    static-locations: classpath:/META-INF/resources/,classpath:/resources/, classpath:/static/,classpath:/public/
+    chain:
+      strategy:
+        content: #使用MD5作为静态资源的版本号
+          enabled: true
+          paths: /speech/**
+  thymeleaf:
+    cache: false
+    mode: HTML5
+    encoding: UTF-8
+    servlet:
+      content-type: text/html
+  session:
+    timeout: 1800
+
+logging:
+  level:
+    com.ifacebox.speech: info
+  file:
+    path: /
+    name: logs/speech-ws.log

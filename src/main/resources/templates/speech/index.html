@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>实时语音转写</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+</head>
+<body>
+<table align="center">
+    <tr align="center">
+        <td colspan="4">实时语音转写</td>
+    </tr>
+    <tr>
+        <td colspan="4"><textarea id="text" style="width: 100%;height: 200px;"></textarea></td>
+    </tr>
+    <tr>
+        <td width="16"><img th:src="@{/speech/img/speech.png}" width="16" height="16"></td>
+        <td width="300" align="left"><span id="say">正在说话...</span></td>
+        <td width="20"><input id="start" type="button" value="录音"/></td>
+        <td width="20"><input id="stop" type="button" disabled value="停止"/></td>
+    </tr>
+</table>
+<script th:src="@{/speech/js/jquery.min.js}"></script>
+<script th:src="@{/speech/js/audio.websocket.js}"></script>
+<script th:src="@{/speech/js/audio.recorder.js}"></script>
+<script th:src="@{/speech/js/audio.speech.js}"></script>
+<script type="text/javascript">
+    $('#start').on('click', function () {
+        audioSpeech.start(function () {
+            $('#start').attr('disabled', true);
+            $('#stop').removeAttr('disabled');
+        }, function () {
+            $('#start').removeAttr('disabled');
+            $('#stop').attr('disabled', true);
+        }, function (data) {
+            if (data.final) {
+                $('#text').append(data.text + '\r\n');
+            } else {
+                $('#say').text(data.text);
+            }
+        }, function (error) {
+            alert(error);
+        });
+    });
+    $('#stop').on('click', function () {
+        audioSpeech.stop();
+    });
+</script>
+</body>
+</html>
+
+
