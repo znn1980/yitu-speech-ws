@@ -19,18 +19,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class WebSocketServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketServer.class);
-    private static AudioSpeechServer audioSpeechServer;
     private static final Map<String, Session> USER_SESSION_POOLS = new ConcurrentHashMap<>();
+    private static AudioSpeechServer audioSpeechServer;
 
     @Autowired
-    public void setChatUserService(AudioSpeechServer audioSpeechServer) {
-        audioSpeechServer.setAudioDataCallback(new AudioDataCallback() {
+    public void setAudioSpeechServer(AudioSpeechServer audioSpeechServer) {
+        WebSocketServer.audioSpeechServer = audioSpeechServer;
+        WebSocketServer.audioSpeechServer.setAudioDataCallback(new AudioDataCallback() {
             @Override
             public void setText(boolean isFinal, String text) {
                 sendMessage(isFinal, text);
             }
         });
-        WebSocketServer.audioSpeechServer = audioSpeechServer;
+        WebSocketServer.audioSpeechServer.start();
     }
 
     @OnOpen

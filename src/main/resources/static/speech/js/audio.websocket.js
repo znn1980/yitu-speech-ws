@@ -1,6 +1,10 @@
-const AudioWebSocket = function (wsUrl, mediaStream, openCallback, closeCallback, messageCallback) {
-    const webSocket = new WebSocket(wsUrl);
-    const audioRecorder = new AudioRecorder(mediaStream, webSocket);
+const AudioWebSocket = function (audioSpeechURL, mediaStream, openCallback, closeCallback, messageCallback, errorCallback) {
+    const webSocket = new WebSocket(audioSpeechURL);
+    const audioRecorder = new AudioRecorder(mediaStream, function (data) {
+        if (webSocket) {
+            webSocket.send(data);
+        }
+    });
     this.stop = function () {
         audioRecorder.stop();
         if (webSocket) {
@@ -10,17 +14,18 @@ const AudioWebSocket = function (wsUrl, mediaStream, openCallback, closeCallback
     };
     webSocket.binaryType = 'arraybuffer';
     webSocket.onopen = function () {
-        console.log('连接成功');
+        console.log('WebSocket连接成功！');
         audioRecorder.start();
         typeof openCallback === 'function' && openCallback();
     };
     webSocket.onclose = function () {
-        console.log('连接关闭')
+        console.log('WebSocket连接关闭！')
         stop();
     };
     webSocket.onerror = function () {
-        console.log('连接异常')
+        console.log('WebSocket连接异常！')
         stop();
+        typeof errorCallback === 'function' && errorCallback('WebSocket连接异常！');
     };
     webSocket.onmessage = function (ev) {
         console.log('数据：' + ev.data);

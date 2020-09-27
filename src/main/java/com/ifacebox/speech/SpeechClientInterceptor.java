@@ -1,0 +1,42 @@
+package com.ifacebox.speech;
+
+import io.grpc.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * @author znn
+ */
+public class SpeechClientInterceptor implements ClientInterceptor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SpeechClientInterceptor.class);
+    private static final Metadata.Key<String> X_DEV_ID = Metadata.Key.of("x-dev-id", Metadata.ASCII_STRING_MARSHALLER);
+    private static final Metadata.Key<String> X_REQUEST_SEND_TIMESTAMP = Metadata.Key.of("x-request-send-timestamp", Metadata.ASCII_STRING_MARSHALLER);
+    private static final Metadata.Key<String> X_SIGNATURE = Metadata.Key.of("x-signature", Metadata.ASCII_STRING_MARSHALLER);
+    private static final Metadata.Key<String> X_API_KEY = Metadata.Key.of("x-api-key", Metadata.ASCII_STRING_MARSHALLER);
+    private AudioSpeechConfig config;
+
+    public SpeechClientInterceptor(AudioSpeechConfig config) {
+        this.config = config;
+    }
+
+    @Override
+    public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(next.newCall(method, callOptions)) {
+            @Override
+            public void start(Listener<RespT> responseListener, Metadata headers) {
+                long ts = config.getRequestSendTimestamp();
+                headers.put(X_DEV_ID, config.getDevId());
+                headers.put(X_REQUEST_SEND_TIMESTAMP, String.valueOf(ts));
+                headers.put(X_SIGNATURE, config.getSignature(ts));
+                headers.put(X_API_KEY, config.getApiKey(ts));
+                LOGGER.info("验证信息：" + headers.toString());
+                super.start(new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(responseListener) {
+                    @Override
+                    public void onHeaders(Metadata headers) {
+                        super.onHeaders(headers);
+                    }
+                }, headers);
+            }
+        };
+    }
+}

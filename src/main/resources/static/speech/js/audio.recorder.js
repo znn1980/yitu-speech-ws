@@ -1,15 +1,21 @@
-const AudioRecorder = function (mediaStream, audioWebSocket) {
-    const sampleBits = 16; //输出采样数位 8, 16
+const AudioRecorder = function (mediaStream, sendCallback) {
+    const sampleBits = 16; //输出采样数位
     const sampleRate = 16000; //输出采样率
     const sendBufferSize = 1024;
-    const context = new AudioContext();
-    const audioInput = context.createMediaStreamSource(mediaStream);
-    const recorder = context.createScriptProcessor(4096, 1, 1);
+    const bufferSize = 4096;
+    const inputChannels = 1;
+    const outputChannels = 1;
+    const sendWsCallback = sendCallback || function (data) {
+        console.log(data);
+    };
+    const audioContext = new AudioContext();
+    const mediaStreamSource = audioContext.createMediaStreamSource(mediaStream);
+    const scriptProcessor = audioContext.createScriptProcessor(bufferSize, inputChannels, outputChannels);
     const audioData = {
         size: 0 //录音文件长度
         , buffer: [] //录音缓存
         , inputSampleRate: 48000 //输入采样率
-        , inputSampleBits: 16 //输入采样数位 8, 16
+        , inputSampleBits: sampleBits //输入采样数位 8, 16
         , outputSampleRate: sampleRate //输出采样数位
         , outputSampleBits: sampleBits //输出采样率
         , clear: function () {
@@ -27,7 +33,7 @@ const AudioRecorder = function (mediaStream, audioWebSocket) {
                 data.set(this.buffer[i], offset);
                 offset += this.buffer[i].length;
             }
-            const compression = parseInt(this.inputSampleRate / this.outputSampleRate);
+            const compression = this.inputSampleRate / this.outputSampleRate;
             const length = data.length / compression;
             const result = new Float32Array(length);
             let index = 0, j = 0;
@@ -54,8 +60,8 @@ const AudioRecorder = function (mediaStream, audioWebSocket) {
         }
     };
     const sendData = function () {
-        const reader = new FileReader();
-        reader.onload = function (e) {
+        const fileReader = new FileReader();
+        fileReader.onload = function (e) {
             const buffer = new Int8Array(e.target.result);
             if (buffer.length > 0) {
                 let tmpBuffer = new Int8Array(sendBufferSize);
@@ -63,7 +69,7 @@ const AudioRecorder = function (mediaStream, audioWebSocket) {
                 for (let i = 0; i < buffer.byteLength; i++) {
                     tmpBuffer[j++] = buffer[i];
                     if (((i + 1) % sendBufferSize) == 0) {
-                        audioWebSocket.send(tmpBuffer);
+                        sendWsCallback(tmpBuffer);
                         if (buffer.byteLength - i - 1 >= sendBufferSize) {
                             tmpBuffer = new Int8Array(sendBufferSize);
                         } else {
@@ -72,28 +78,24 @@ const AudioRecorder = function (mediaStream, audioWebSocket) {
                         j = 0;
                     }
                     if ((i + 1 == buffer.byteLength) && ((i + 1) % sendBufferSize) != 0) {
-                        audioWebSocket.send(tmpBuffer);
+                        sendWsCallback(tmpBuffer);
                     }
                 }
             }
         };
-        reader.readAsArrayBuffer(audioData.pcm());
+        fileReader.readAsArrayBuffer(audioData.pcm());
         audioData.clear();
     };
     this.start = function () {
-        audioInput.connect(recorder);
-        recorder.connect(context.destination);
+        console.log('麦克风打开！')
+        mediaStreamSource.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
     };
     this.stop = function () {
-        recorder.disconnect();
+        console.log('麦克风关闭！')
+        scriptProcessor.disconnect();
     };
-    this.getBlob = function () {
-        return audioData.pcm();
-    };
-    this.clear = function () {
-        audioData.clear();
-    };
-    recorder.onaudioprocess = function (e) {
+    scriptProcessor.onaudioprocess = function (e) {
         const inputBuffer = e.inputBuffer.getChannelData(0);
         audioData.put(inputBuffer);
         sendData();

@@ -21,9 +21,11 @@ public class WebSocketConfigurer {
         return new AudioSpeechConfig();
     }
 
-    @Bean(initMethod = "start", destroyMethod = "stop")
+    @Bean
     public AudioSpeechServer AudioSpeechServer() {
-        return new AudioSpeechServer();
+        AudioSpeechServer audioSpeechServer = new AudioSpeechServer();
+        audioSpeechServer.setAudioSpeechConfig(audioSpeechConfig());
+        return audioSpeechServer;
     }
 
 }

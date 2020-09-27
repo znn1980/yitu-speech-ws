@@ -12,9 +12,9 @@ const audioSpeech = {
                     typeof closeCallback === 'function' && closeCallback();
                 }, function (data) {
                     typeof messageCallback === 'function' && messageCallback(data);
-                });
+                }, errorCallback);
             }, function (error) {
-                typeof errorCallback === 'function' && errorCallback("麦克风授权失败！" + (error.code || error.name));
+                typeof errorCallback === 'function' && errorCallback("麦克风授权失败！【" + (error.code || error.name) + "】");
             });
         } else {
             typeof errorCallback === 'function' && errorCallback("浏览器不支持麦克风！");
