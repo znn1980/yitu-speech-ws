@@ -24,8 +24,9 @@ public class AudioSpeechServer {
     private StreamObserver<StreamingSpeechRequest> requestObserver;
     private AudioDataCallback callback;
     private AudioSpeechConfig config;
+    private Timer timer;
 
-    public void setAudioSpeechConfig(AudioSpeechConfig config) {
+    public AudioSpeechServer(AudioSpeechConfig config) {
         this.config = config;
     }
 
@@ -45,11 +46,13 @@ public class AudioSpeechServer {
         requestObserver = stub.recognizeStream(new SpeechStreamObserver(callback, new RecognizeStreamCallback() {
             @Override
             public void reboot() {
-                new Timer().schedule(new TimerTask() {
+                timer = new Timer();
+                timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
                         start(true);
-                        this.cancel();
+                        timer.cancel();
+                        timer = null;
                     }
                 }, isReboot ? REBOOT_TIME : 0);
             }
@@ -59,6 +62,10 @@ public class AudioSpeechServer {
 
     public void stop() {
         LOGGER.info("依图实时语音转写服务停止中...");
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
         channel.shutdown();
         LOGGER.info("依图实时语音转写服务停止完成");
     }

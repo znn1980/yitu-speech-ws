@@ -1,6 +1,7 @@
 package com.ifacebox.speech.ws;
 
 import com.ifacebox.speech.AudioDataCallback;
+import com.ifacebox.speech.AudioSpeechConfig;
 import com.ifacebox.speech.AudioSpeechServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,8 +10,6 @@ import org.springframework.stereotype.Component;
 
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author znn
@@ -19,48 +18,50 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class WebSocketServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketServer.class);
-    private static final Map<String, Session> USER_SESSION_POOLS = new ConcurrentHashMap<>();
-    private static AudioSpeechServer audioSpeechServer;
+    private static AudioSpeechConfig audioSpeechConfig;
+    private AudioSpeechServer audioSpeechServer;
 
     @Autowired
-    public void setAudioSpeechServer(AudioSpeechServer audioSpeechServer) {
-        WebSocketServer.audioSpeechServer = audioSpeechServer;
-        WebSocketServer.audioSpeechServer.setAudioDataCallback(new AudioDataCallback() {
-            @Override
-            public void setText(boolean isFinal, String text) {
-                sendMessage(isFinal, text);
-            }
-        });
-        WebSocketServer.audioSpeechServer.start();
+    public void setAudioSpeechConfig(AudioSpeechConfig audioSpeechConfig) {
+        WebSocketServer.audioSpeechConfig = audioSpeechConfig;
     }
 
     @OnOpen
     public void onOpen(Session session) {
-        USER_SESSION_POOLS.put(session.getId(), session);
-        LOGGER.info("进入：" + session.getId());
+        LOGGER.info("打开语音通道：" + session.getId());
+        audioSpeechServer = new AudioSpeechServer(audioSpeechConfig);
+        audioSpeechServer.setAudioDataCallback(new AudioDataCallback() {
+            @Override
+            public void setText(boolean isFinal, String text) {
+                session.getAsyncRemote().sendText("{\"final\":" + isFinal + ",\"text\":\"" + text + "\"}");
+            }
+        });
+        audioSpeechServer.start();
     }
 
     @OnClose
     public void onClose(Session session) {
-        USER_SESSION_POOLS.remove(session.getId());
-        LOGGER.info("退出：" + session.getId());
+        LOGGER.info("关闭语音通道：" + session.getId());
+        if (audioSpeechServer != null) {
+            audioSpeechServer.stop();
+            audioSpeechServer = null;
+        }
     }
 
     @OnError
     public void onError(Session session, Throwable throwable) {
-        USER_SESSION_POOLS.remove(session.getId());
-        LOGGER.error("异常：" + session.getId(), throwable);
+        LOGGER.error("关闭语音通道：" + session.getId(), throwable);
+        if (audioSpeechServer != null) {
+            audioSpeechServer.stop();
+            audioSpeechServer = null;
+        }
     }
 
     @OnMessage
-    public void onMessage(byte[] message, Session session) {
-        //LOGGER.info("数据：" + session.getId() + "【" + message.length + "】");
-        audioSpeechServer.setAudioData(message, 0, message.length);
-    }
-
-    public void sendMessage(boolean isFinal, String text) {
-        for (Session session : USER_SESSION_POOLS.values()) {
-            session.getAsyncRemote().sendText("{\"final\":" + isFinal + ",\"text\":\"" + text + "\"}");
+    public void onMessage(Session session, byte[] message) {
+        if (audioSpeechServer != null) {
+            audioSpeechServer.setAudioData(message, 0, message.length);
         }
     }
+
 }

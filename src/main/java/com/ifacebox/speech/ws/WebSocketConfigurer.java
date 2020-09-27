@@ -21,11 +21,4 @@ public class WebSocketConfigurer {
         return new AudioSpeechConfig();
     }
 
-    @Bean
-    public AudioSpeechServer AudioSpeechServer() {
-        AudioSpeechServer audioSpeechServer = new AudioSpeechServer();
-        audioSpeechServer.setAudioSpeechConfig(audioSpeechConfig());
-        return audioSpeechServer;
-    }
-
 }
