@@ -10,5 +10,12 @@ public interface AudioDataCallback {
      * @param isFinal 是否最终结果
      * @param text
      */
-    void setText(boolean isFinal, String text);
+    void onText(boolean isFinal, String text);
+
+    /**
+     * 实时语音转写异常回调
+     *
+     * @param t
+     */
+    void onError(Throwable t);
 }

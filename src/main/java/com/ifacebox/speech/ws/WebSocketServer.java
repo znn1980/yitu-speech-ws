@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
+import java.io.IOException;
 
 /**
  * @author znn
@@ -29,11 +30,19 @@ public class WebSocketServer {
     @OnOpen
     public void onOpen(Session session) {
         LOGGER.info("打开语音通道：" + session.getId());
-        audioSpeechServer = new AudioSpeechServer(audioSpeechConfig);
-        audioSpeechServer.setAudioDataCallback(new AudioDataCallback() {
+        audioSpeechServer = new AudioSpeechServer(audioSpeechConfig, new AudioDataCallback() {
             @Override
-            public void setText(boolean isFinal, String text) {
+            public void onText(boolean isFinal, String text) {
                 session.getAsyncRemote().sendText("{\"final\":" + isFinal + ",\"text\":\"" + text + "\"}");
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                session.getAsyncRemote().sendText("{\"text\":\"" + t.getMessage() + "\"}");
+                try {
+                    session.close();
+                } catch (IOException e) {
+                }
             }
         });
         audioSpeechServer.start();
