@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author znn
  */
-public class AudioSpeechServer {
+public class AudioSpeechServer implements StreamObserver<StreamingSpeechResponse> {
     private static final Logger LOGGER = LoggerFactory.getLogger(AudioSpeechServer.class);
     private ManagedChannel managedChannel;
     private SpeechRecognitionStub speechRecognitionStub;
@@ -29,31 +29,7 @@ public class AudioSpeechServer {
         LOGGER.info("依图实时语音转写服务启动中...");
         managedChannel = ManagedChannelBuilder.forAddress(audioSpeechConfig.getIp(), audioSpeechConfig.getPort()).usePlaintext().build();
         speechRecognitionStub = SpeechRecognitionGrpc.newStub(ClientInterceptors.intercept(managedChannel, new SpeechClientInterceptor(audioSpeechConfig)));
-        streamObserverRequest = speechRecognitionStub.recognizeStream(new StreamObserver<StreamingSpeechResponse>() {
-            @Override
-            public void onNext(StreamingSpeechResponse response) {
-                StreamingSpeechStatus status = response.getStatus();
-                LOGGER.info("当前音频处理进行到的时间点（音频开始时间为0）：" + status.getProcessedTimestamp());
-                StreamingSpeechResult result = response.getResult();
-                LOGGER.info("此识别结果是否为最终结果：" + result.getIsFinal());
-                StreamingTranscription transcription = result.getBestTranscription();
-                LOGGER.info("转写结果：" + transcription.getTranscribedText());
-                if (!transcription.getTranscribedText().isEmpty()) {
-                    audioDataCallback.onText(result.getIsFinal(), transcription.getTranscribedText());
-                }
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                LOGGER.error("异常：" + t);
-                audioDataCallback.onError(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                LOGGER.info("完成：");
-            }
-        });
+        streamObserverRequest = speechRecognitionStub.recognizeStream(this);
         streamObserverRequest.onNext(StreamingSpeechRequest.newBuilder().setStreamingSpeechConfig(this.getStreamingSpeechConfig()).build());
         LOGGER.info("依图实时语音转写服务启动完成");
     }
@@ -62,6 +38,34 @@ public class AudioSpeechServer {
         LOGGER.info("依图实时语音转写服务停止中...");
         managedChannel.shutdown();
         LOGGER.info("依图实时语音转写服务停止完成");
+    }
+
+    @Override
+    public void onNext(StreamingSpeechResponse response) {
+        StreamingSpeechStatus status = response.getStatus();
+        LOGGER.info("当前音频处理进行到的时间点（音频开始时间为0）：" + status.getProcessedTimestamp());
+        StreamingSpeechResult result = response.getResult();
+        LOGGER.info("此识别结果是否为最终结果：" + result.getIsFinal());
+        StreamingTranscription transcription = result.getBestTranscription();
+        LOGGER.info("转写结果：" + transcription.getTranscribedText());
+        if (!transcription.getTranscribedText().isEmpty()) {
+            audioDataCallback.onText(result.getIsFinal(), transcription.getTranscribedText());
+        }
+    }
+
+    @Override
+    public void onError(Throwable t) {
+        LOGGER.error("异常：" + t);
+        audioDataCallback.onError(t);
+    }
+
+    @Override
+    public void onCompleted() {
+        LOGGER.info("完成：");
+    }
+
+    public void setAudioData(byte[] bytes) {
+        this.setAudioData(bytes, 0, bytes.length);
     }
 
     public void setAudioData(byte[] bytes, int offset, int size) {

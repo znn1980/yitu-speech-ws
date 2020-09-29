@@ -26,9 +26,11 @@
 <script th:src="@{/speech/js/audio.websocket.js}"></script>
 <script th:src="@{/speech/js/audio.recorder.js}"></script>
 <script th:src="@{/speech/js/audio.speech.js}"></script>
-<script type="text/javascript">
+<script th:inline="javascript">
+    const base = new String(/*[[@{/}]]*/);
+    const url = 'ws://' + window.location.host + base + 'yitu/speech';
     $('#start').on('click', function () {
-        audioSpeech.start(function () {
+        audioSpeech.start(url, function () {
             $('#start').attr('disabled', true);
             $('#stop').attr('disabled', false);
         }, function () {

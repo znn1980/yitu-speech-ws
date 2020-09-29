@@ -11,6 +11,7 @@ const AudioWebSocket = function (audioSpeechURL, mediaStream, openCallback, clos
     };
     webSocket.binaryType = 'arraybuffer';
     webSocket.onopen = function () {
+        console.log(audioSpeechURL);
         console.log('WebSocket连接成功！');
         audioRecorder.start();
         typeof openCallback === 'function' && openCallback();

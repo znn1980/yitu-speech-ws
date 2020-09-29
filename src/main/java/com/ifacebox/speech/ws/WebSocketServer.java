@@ -69,7 +69,7 @@ public class WebSocketServer {
     @OnMessage
     public void onMessage(Session session, byte[] message) {
         if (audioSpeechServer != null) {
-            audioSpeechServer.setAudioData(message, 0, message.length);
+            audioSpeechServer.setAudioData(message);
         }
     }
 

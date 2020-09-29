@@ -1,12 +1,11 @@
 const audioSpeech = {
-    audioSpeechURL: "ws://127.0.0.1:8088/yitu/speech"
-    , audioWebSocket: null
-    , start: function (openCallback, closeCallback, messageCallback, errorCallback) {
+    audioWebSocket: null
+    , start: function (audioSpeechURL, openCallback, closeCallback, messageCallback, errorCallback) {
         if (navigator.getUserMedia) {
             navigator.getUserMedia({
                 audio: true
             }, function (mediaStream) {
-                audioSpeech.audioWebSocket = new AudioWebSocket(audioSpeech.audioSpeechURL, mediaStream, function () {
+                audioSpeech.audioWebSocket = new AudioWebSocket(audioSpeechURL, mediaStream, function () {
                     typeof openCallback === 'function' && openCallback();
                 }, function () {
                     typeof closeCallback === 'function' && closeCallback();
