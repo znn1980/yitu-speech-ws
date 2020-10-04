@@ -27,10 +27,17 @@
 <script th:src="@{/speech/js/audio.recorder.js}"></script>
 <script th:src="@{/speech/js/audio.speech.js}"></script>
 <script th:inline="javascript">
-    const base = new String(/*[[@{/}]]*/);
-    const url = 'ws://' + window.location.host + base + 'yitu/speech';
+    const config = {
+        base: new String(/*[[@{/}]]*/)
+        , host: window.location.host//域名 + 端口号
+        , protocol: window.location.protocol//网络协议
+        , hostname: window.location.hostname//域名
+        , port: window.location.port//端口号
+        , wsUrl: (this.protocol === 'https:' ? 'wss://' : 'ws://') + this.host + this.base + 'yitu/speech'
+    };
+
     $('#start').on('click', function () {
-        audioSpeech.start(url, function () {
+        audioSpeech.start(config.wsUrl, function () {
             $('#start').attr('disabled', true);
             $('#stop').attr('disabled', false);
         }, function () {
